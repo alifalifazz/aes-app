@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIPHERBOARD — Simulasi AES-128</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="lattice-bg" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar__brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="30" height="30">
+        <rect x="2" y="2" width="12" height="12" rx="2" class="mark-a"/>
+        <rect x="18" y="2" width="12" height="12" rx="2" class="mark-b"/>
+        <rect x="2" y="18" width="12" height="12" rx="2" class="mark-b"/>
+        <rect x="18" y="18" width="12" height="12" rx="2" class="mark-a"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-title">CIPHERBOARD</span>
+      <span class="brand-sub">AES&#8209;128 · Rijndael Block Simulator</span>
+    </div>
+  </div>
+  <div class="topbar__meta">
+    <span class="pill">Blok 128&#8209;bit</span>
+    <span class="pill">10 Ronde</span>
+    <span class="pill">Mode ECB</span>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============================ PANEL INPUT ============================ -->
+  <section class="panel input-panel" aria-label="Form input">
+    <h2 class="panel-title"><span class="idx">01</span>Input</h2>
+
+    <div class="field-group">
+      <label class="field-label" for="mode-select">Operasi</label>
+      <div class="segmented" id="mode-select" role="tablist">
+        <button type="button" class="segmented__btn is-active" data-mode="encrypt" role="tab" aria-selected="true">ENCRYPT</button>
+        <button type="button" class="segmented__btn" data-mode="decrypt" role="tab" aria-selected="false">DECRYPT</button>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field-label-row">
+        <label class="field-label" for="input-text" id="input-text-label">Plaintext</label>
+        <div class="format-toggle">
+          <button type="button" class="format-toggle__btn is-active" data-format="text">Teks</button>
+          <button type="button" class="format-toggle__btn" data-format="hex">Hex</button>
+        </div>
+      </div>
+      <input type="text" id="input-text" class="field-input mono" placeholder="Contoh: ATTACKATDAWN12XY" maxlength="32" autocomplete="off" spellcheck="false">
+      <div class="field-hint" id="input-text-hint">Maks. 16 karakter teks (akan di-pad dengan 0x00) — atau masukkan 32 karakter hex.</div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="input-key">Kunci AES&#8209;128 (Hex, 32 karakter)</label>
+      <div class="key-row">
+        <input type="text" id="input-key" class="field-input mono" placeholder="2b7e151628aed2a6abf7158809cf4f3c" maxlength="32" autocomplete="off" spellcheck="false">
+        <button type="button" id="btn-random-key" class="icon-btn" title="Kunci acak" aria-label="Buat kunci acak">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div class="field-hint">Wajib tepat 32 karakter heksadesimal (0&#8211;9, A&#8211;F).</div>
+    </div>
+
+    <div class="field-group error-slot" id="error-slot" hidden></div>
+
+    <div class="action-row">
+      <button type="button" id="btn-process" class="btn btn--primary">
+        <span id="btn-process-label">JALANKAN ENKRIPSI</span>
+      </button>
+      <button type="button" id="btn-reset" class="btn btn--ghost">RESET</button>
+    </div>
+
+    <div class="output-block" id="output-block" hidden>
+      <label class="field-label" id="output-label">Ciphertext (Hex)</label>
+      <div class="output-row">
+        <input type="text" id="output-text" class="field-input mono" readonly>
+        <button type="button" id="btn-copy" class="icon-btn" title="Salin" aria-label="Salin hasil">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <span class="copy-toast" id="copy-toast">Disalin!</span>
+    </div>
+
+    <div class="toggle-row">
+      <label class="switch">
+        <input type="checkbox" id="toggle-detail" checked>
+        <span class="switch__track"><span class="switch__thumb"></span></span>
+      </label>
+      <span class="toggle-label">Tampilkan detail proses perhitungan</span>
+    </div>
+
+    <div class="legend">
+      <div class="legend__item"><span class="swatch swatch--sub"></span>SubBytes</div>
+      <div class="legend__item"><span class="swatch swatch--shift"></span>ShiftRows</div>
+      <div class="legend__item"><span class="swatch swatch--mix"></span>MixColumns</div>
+      <div class="legend__item"><span class="swatch swatch--key"></span>AddRoundKey</div>
+      <div class="legend__item"><span class="swatch swatch--changed"></span>Berubah</div>
+    </div>
+  </section>
+
+  <!-- ============================ AREA HASIL ============================ -->
+  <section class="panel result-panel" aria-label="Hasil dan detail proses">
+
+    <div class="empty-state" id="empty-state">
+      <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
+        <rect x="4" y="4" width="24" height="24" rx="3" class="empty-a"/>
+        <rect x="36" y="4" width="24" height="24" rx="3" class="empty-b"/>
+        <rect x="4" y="36" width="24" height="24" rx="3" class="empty-b"/>
+        <rect x="36" y="36" width="24" height="24" rx="3" class="empty-a"/>
+      </svg>
+      <p>Isi plaintext dan kunci di panel sebelah kiri, lalu jalankan proses untuk melihat State Matrix setiap ronde di sini.</p>
+    </div>
+
+    <div class="result-shell" id="result-shell" hidden>
+
+      <!-- Breadcrumb / indikator ronde -->
+      <nav class="round-nav" id="round-nav" aria-label="Navigasi ronde"></nav>
+
+      <div class="detail-container" id="detail-container"></div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <span>CIPHERBOARD — dibangun untuk Tugas Individu Kriptografi.</span>
+</footer>
+
+<script src="aes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
